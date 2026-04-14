@@ -59,6 +59,7 @@ Informações Adicionais e Créditos
 
 O projeto original e a base técnica para este jailbreak foram documentados por br-lemes. Para entender o funcionamento detalhado dos scripts internos e a lógica do jailbreak, consulte a documentação original:
 https://www.br-lemes.net/2017/03/ssh-no-lev.html
+
 Isenção de Responsabilidade
 
 Este software é fornecido "no estado em que se encontra", sem garantias de qualquer tipo. A modificação do firmware do dispositivo é um procedimento de risco e pode resultar na perda da garantia ou inutilização (brick) do hardware se não for executado corretamente.
