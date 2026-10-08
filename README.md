@@ -67,7 +67,7 @@ hwclock -w -u
 
 ---
 
-## Parte 2 — LEV_OS v1 (interface no lugar da Loja)
+## Parte 2 — LEV_OS v1.1 (interface no lugar da Loja)
 
 ### O que é
 
@@ -87,12 +87,23 @@ O navegador embutido do Lev é um WebKit de 2014 com OpenSSL 1.0.1: não abre a 
 
 Tempos medidos no aparelho: busca ~2 s, página comum 1 a 3 s, artigo grande da Wikipédia (2 MB) ~13 s.
 
+### Navegação por folhas
+
+O navegador do Lev não rola a tela. Por isso cada página é cortada na altura da tela (758×1024) e ganha uma barra embaixo:
+
+- **< ANTERIOR** e **PRÓXIMA >** trocam de folha;
+- tocar no número do meio (ex.: `6 / 18`) abre uma grade para ir direto a qualquer folha.
+
+Isso vale para todas as telas: leitor, arquivos, favoritos e sistema.
+
 ### Limites conhecidos
 
 - **Sites que são aplicativos em JavaScript** (ChatGPT, claude.ai, Pinterest, redes sociais) **não funcionam**, nem no modo leitor nem no navegador original.
 - O modo leitor não mostra imagens (só o texto alternativo) e não mantém login em sites.
 - Formulários são sempre enviados por GET; os que exigem POST podem falhar.
-- O botão físico continua com a função original (voltar aos livros).
+- O link **[abrir sem o leitor]** entrega o endereço ao navegador original, que na maioria dos sites atuais responde "Erro de certificado SSL". Só serve para os poucos sites que ele ainda abre.
+- O Wi-Fi do sistema original oscila; o leitor tenta de novo sozinho (até três vezes) e a tela de erro tem o botão TENTAR DE NOVO.
+- O botão físico continua com a função original (voltar aos livros); ele não chega ao navegador como tecla.
 - Vídeo é inviável na tela e-ink.
 
 ### Como funciona
@@ -109,7 +120,7 @@ Nada é gravado na NAND, no rootfs ou no bootloader. A única alteração fora d
 
 Pré-requisito: jailbreak feito e SSH funcionando (Parte 1). Tenha o cartão SD de recuperação pronto antes de começar (Parte 3).
 
-**1. Copie os arquivos.** Com o Lev no USB, extraia `LEV_OS_v1.zip` e copie para a **raiz** do armazenamento:
+**1. Copie os arquivos.** Com o Lev no USB, extraia `LEV_OS_v1.1.zip` e copie para a **raiz** do armazenamento:
 
 ```
 boordr
@@ -136,6 +147,15 @@ ls /tmp/levos            # deve ter httpd.sh, leitor.awk, inetd.conf, inetd.pid
 netstat -ltn | grep 8080 # deve mostrar 127.0.0.1:8080
 sh /mnt/fat/LEV_OS/start.sh; echo $?   # 0 = ok
 ```
+
+### Atualizar da v1 para a v1.1
+
+Com o Lev no USB, copie por cima os arquivos da pasta `LEV_OS` (`start.sh`, `httpd.sh`, `leitor.awk`) e o `LEV_LAUNCHER/index.html`. O `boordr` não mudou. Ejete e tire o cabo; a versão nova entra sozinha. Os favoritos (`LEV_OS/favoritos.txt`) são preservados.
+
+### Histórico
+
+- **v1.1**: navegação por folhas com seletor de folha; modo leitor corrigido para páginas com dados dentro das marcas (Wikipédia); tabelas ajustadas à largura da tela; nova tentativa automática quando o DNS ou a conexão falham; página grande deixou de levar minutos (era o `sed` do BusyBox).
+- **v1**: primeira versão.
 
 ### Desligar e desinstalar
 
