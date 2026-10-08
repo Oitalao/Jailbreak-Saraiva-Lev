@@ -3,7 +3,7 @@
 Este repositório fornece os arquivos e instruções para:
 
 1. **Habilitar acesso root via SSH** no e-reader Saraiva Lev (jailbreak).
-2. **Instalar o LEV_OS**, uma interface própria que abre no lugar da Loja: busca e navegação na internet em modo leitor, gerenciador de arquivos, downloads e painel do sistema.
+2. **Instalar o LEV_OS**, uma interface própria que abre no lugar da Loja: busca e navegação na internet em modo leitor, gerenciador de arquivos, downloads, painel do sistema, **VPN (Tailscale)** e **nuvem (Nextcloud)**.
 3. **Recuperar o aparelho travado em "Iniciando"**, com um cartão SD inserido nele.
 
 Os arquivos ficam na aba **Releases**.
@@ -67,7 +67,7 @@ hwclock -w -u
 
 ---
 
-## Parte 2 — LEV_OS v1.1 (interface no lugar da Loja)
+## Parte 2 — LEV_OS v1.2 (interface no lugar da Loja)
 
 ### O que é
 
@@ -78,8 +78,9 @@ O atalho **Loja** do Lev passa a abrir uma interface local, servida pelo própri
 | **Início** | Campo de busca/endereço, hora, bateria e estado do Wi-Fi |
 | **Internet** | Busca (DuckDuckGo) e navegação em **modo leitor**; favoritos editáveis |
 | **Arquivos** | Navega no armazenamento e no sistema inteiro; abre, mostra como texto e apaga |
+| **Nuvem** | Navega nas pastas de um servidor Nextcloud, baixa para o Lev, abre texto e imagem, e envia arquivos do Lev para lá |
 | **Downloads** | Baixa por endereço (HTTP e HTTPS) para a pasta `Downloads`; livros baixados aparecem na biblioteca |
-| **Sistema** | Memória, rede, acertar relógio pela internet, ligar SSH, manter o Wi-Fi ligado, programas rodando, teste de botões, reiniciar |
+| **Sistema** | Memória, rede, estado e botões de Wi-Fi sempre ligado, VPN e SSH, acertar relógio pela internet, programas rodando, teste de botões, reiniciar |
 
 ### Por que "modo leitor"
 
@@ -96,12 +97,49 @@ O navegador do Lev não rola a tela. Por isso cada página é cortada na altura 
 
 Isso vale para todas as telas: leitor, arquivos, favoritos e sistema.
 
+### VPN e nuvem
+
+O LEV_OS conecta o Lev a um servidor seu, em casa ou fora dela. Foram usados **Tailscale** (VPN) e **Nextcloud** (nuvem) **por serem gratuitos**: o Tailscale tem plano pessoal sem custo e o Nextcloud é software livre, instalado no seu próprio computador ou servidor. Nenhum dos dois é obrigatório, e um funciona sem o outro.
+
+**VPN (Tailscale).** O kernel do Lev não tem suporte a túnel (TUN), então uma VPN tradicional não entra. O Tailscale tem um modo que dispensa isso: ele abre um proxy local, e o LEV_OS manda por ele tudo o que for endereço da sua rede Tailscale (`...ts.net` ou `100.x.x.x`). Consequências:
+
+- só o que passa pelo LEV_OS (nuvem, modo leitor, downloads) usa a VPN; o navegador original e o resto do sistema, não;
+- o cliente usa cerca de 15 MB de memória e sobe sozinho com a interface;
+- a identidade do aparelho na sua rede fica em `LEV_OS/vpn/state`, no armazenamento.
+
+**Nuvem (Nextcloud).** O LEV_OS fala WebDAV com o Nextcloud usando o `curl` do pacote. O servidor pode estar atrás do Tailscale ou em qualquer endereço HTTPS.
+
+### Configurar a VPN
+
+1. Crie uma conta gratuita em https://tailscale.com e instale o Tailscale no servidor (ou no computador) que o Lev deve alcançar.
+2. No Lev: **SISTEMA → VPN: DETALHES E LOGIN → ENTRAR NA CONTA**. Em uns 20 segundos aparece um endereço `https://login.tailscale.com/...`.
+3. Abra esse endereço no celular ou no computador e aprove o aparelho.
+4. No painel do Tailscale, desative a expiração de chave do aparelho "lev". Sem isso, a VPN pede login de novo a cada 180 dias.
+
+Para desligar a VPN: botão em SISTEMA, ou crie o arquivo `LEV_OS/vpn/DISABLED`.
+
+### Configurar a nuvem
+
+1. No Nextcloud, em **Configurações → Segurança**, crie uma **senha de aplicativo** (não use a sua senha principal).
+2. Com o Lev no USB, copie `LEV_OS/nuvem.conf.exemplo` para `LEV_OS/nuvem.conf` e preencha as três linhas:
+
+```
+NC_URL=https://endereco-do-seu-nextcloud
+NC_USER=seu_usuario
+NC_PASS=senha-de-aplicativo
+```
+
+3. Ejete, tire o cabo e toque em **NUVEM** na tela de início.
+
+Os valores aceitam letras, números e `: / . _ @ -`. Downloads vão para a pasta `Nuvem` do armazenamento; envios vão para a pasta `Lev` do Nextcloud.
+
 ### Limites conhecidos
 
 - **Sites que são aplicativos em JavaScript** (ChatGPT, claude.ai, Pinterest, redes sociais) **não funcionam**, nem no modo leitor nem no navegador original.
 - O modo leitor não mostra imagens (só o texto alternativo) e não mantém login em sites.
 - Formulários são sempre enviados por GET; os que exigem POST podem falhar.
 - O link **[abrir sem o leitor]** entrega o endereço ao navegador original, que na maioria dos sites atuais responde "Erro de certificado SSL". Só serve para os poucos sites que ele ainda abre.
+- Depois de ligar o aparelho ou de sair do modo USB, o rádio só liga quando você toca em **Loja**; a partir daí o vigia do LEV_OS o mantém ligado.
 - O Wi-Fi do sistema original oscila; o leitor tenta de novo sozinho (até três vezes) e a tela de erro tem o botão TENTAR DE NOVO.
 - O botão físico continua com a função original (voltar aos livros); ele não chega ao navegador como tecla.
 - Vídeo é inviável na tela e-ink.
@@ -112,6 +150,7 @@ Isso vale para todas as telas: leitor, arquivos, favoritos e sistema.
 - `LEV_OS/start.sh` copia os scripts para a memória (`/tmp/levos`), liga a interface de loopback (o firmware a deixa desligada) e sobe o `inetd` do BusyBox escutando **somente em 127.0.0.1:8080**.
 - `LEV_OS/httpd.sh` é o servidor: um processo de shell por pedido.
 - `LEV_OS/leitor.awk` é o conversor do modo leitor.
+- `LEV_OS/vpn/tailscaled` é o cliente Tailscale, copiado para a memória e executado de lá, para o armazenamento poder ir para o USB com a VPN no ar.
 - `LEV_LAUNCHER/index.html` é a página que a Loja abre: um modo básico que pula para `http://127.0.0.1:8080/` quando o serviço local responde.
 
 Nada é gravado na NAND, no rootfs ou no bootloader. A única alteração fora do armazenamento USB é o arquivo `/priv/private/rescueurl` (o endereço que a Loja abre), feita no passo 3 abaixo.
@@ -120,7 +159,7 @@ Nada é gravado na NAND, no rootfs ou no bootloader. A única alteração fora d
 
 Pré-requisito: jailbreak feito e SSH funcionando (Parte 1). Tenha o cartão SD de recuperação pronto antes de começar (Parte 3).
 
-**1. Copie os arquivos.** Com o Lev no USB, extraia `LEV_OS_v1.1.zip` e copie para a **raiz** do armazenamento:
+**1. Copie os arquivos.** Com o Lev no USB, extraia `LEV_OS_v1.2.zip` e copie para a **raiz** do armazenamento:
 
 ```
 boordr
@@ -148,12 +187,13 @@ netstat -ltn | grep 8080 # deve mostrar 127.0.0.1:8080
 sh /mnt/fat/LEV_OS/start.sh; echo $?   # 0 = ok
 ```
 
-### Atualizar da v1 para a v1.1
+### Atualizar de uma versão anterior
 
-Com o Lev no USB, copie por cima os arquivos da pasta `LEV_OS` (`start.sh`, `httpd.sh`, `leitor.awk`) e o `LEV_LAUNCHER/index.html`. O `boordr` não mudou. Ejete e tire o cabo; a versão nova entra sozinha. Os favoritos (`LEV_OS/favoritos.txt`) são preservados.
+Com o Lev no USB, copie por cima a pasta `LEV_OS` inteira e o `LEV_LAUNCHER/index.html`. O `boordr` não mudou. Ejete e tire o cabo; a versão nova entra sozinha. Seus favoritos (`LEV_OS/favoritos.txt`), a configuração da nuvem (`LEV_OS/nuvem.conf`) e o login da VPN (`LEV_OS/vpn/state`) são preservados, porque o pacote não traz esses arquivos.
 
 ### Histórico
 
+- **v1.2**: VPN por Tailscale (sem túnel, por proxy local) e tela NUVEM para Nextcloud; Wi-Fi sempre ligado, VPN e SSH sobem sozinhos, com botões de estado em SISTEMA; login da VPN pela própria interface.
 - **v1.1**: navegação por folhas com seletor de folha; modo leitor corrigido para páginas com dados dentro das marcas (Wikipédia); tabelas ajustadas à largura da tela; nova tentativa automática quando o DNS ou a conexão falham; página grande deixou de levar minutos (era o `sed` do BusyBox).
 - **v1**: primeira versão.
 
@@ -173,11 +213,13 @@ Depois disso, as pastas `LEV_OS` e `LEV_LAUNCHER` podem ser apagadas.
 ### Segurança
 
 - O servidor local roda como root, mas só aceita conexões do próprio aparelho (127.0.0.1). Não fica acessível pela rede.
+- A senha de aplicativo do Nextcloud (`LEV_OS/nuvem.conf`) e a identidade do Tailscale (`LEV_OS/vpn/state`) ficam no armazenamento, legíveis por quem ligar o aparelho num computador. Se perder o Lev, revogue a senha de aplicativo no Nextcloud e remova o aparelho no painel do Tailscale.
 - O SSH do jailbreak usa a senha padrão `lev` e fica acessível a quem estiver na mesma rede Wi-Fi. Evite redes públicas com o SSH ligado.
 
 ### Componentes de terceiros incluídos
 
 - `LEV_OS/bin/curl`: curl 8.22.0 estático para ARMv7 (musl), do projeto [stunnel/static-curl](https://github.com/stunnel/static-curl).
+- `LEV_OS/vpn/tailscaled`: Tailscale 1.104.1 para ARMv7, compilação reduzida a partir do código de [tailscale/tailscale](https://github.com/tailscale/tailscale) (licença BSD de 3 cláusulas); o roteiro de compilação está em `LEV_OS/vpn/compilar.sh`.
 - `LEV_OS/bin/cacert.pem`: certificados raiz da Mozilla, extraídos por [curl.se](https://curl.se/docs/caextract.html).
 
 Os hashes SHA-256 de todos os arquivos estão em `SHA256SUMS`.
