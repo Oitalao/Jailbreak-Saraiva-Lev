@@ -24,8 +24,13 @@ Tudo aqui foi testado em **um único aparelho**. Em outro firmware ou revisão, 
 
 ### Conteúdo
 
-- `CybUpdate.bin`: pacote de atualização modificado. A versão interna do sistema de arquivos root foi definida como 999 para forçar a sobrescrita (flash) independente da versão atual do firmware.
-- `dropbear-2025.89`: binário do servidor SSH Dropbear compilado para ARM.
+| Arquivo | Para que serve |
+|---|---|
+| **`CybUpdate.bin`** | **É este que você instala.** Pacote de atualização com SSH (Dropbear) incluído. A versão interna do sistema de arquivos root foi definida como 999 para forçar a sobrescrita (flash) independente da versão atual do firmware. |
+| `jailbreak_6_3_2350_cybft_2350.bin` | O mesmo pacote com a versão interna original (12). Fica como referência; o atualizador pode recusá-lo em aparelhos com firmware mais recente. |
+| `dropbear-2025.89.tar.bz2` | Código-fonte do Dropbear 2025.89, para quem quiser compilar um servidor SSH mais novo. Não é necessário para o jailbreak. |
+
+Os dois pacotes têm bootloader, kernel e sistema de arquivos idênticos; a única diferença é o número de versão.
 
 ### Instalação
 
